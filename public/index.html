@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Particles</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<script defer src="/jquery/dist/jquery.min.js"></script>
+	<link defer type="text/css" rel="stylesheet" href="/bootstrap/dist/css/bootstrap.min.css">
+	<link defer rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.css" integrity="sha256-46qynGAkLSFpVbEBog43gvNhfrOj+BmwXdxFgVK/Kvc=" crossorigin="anonymous">
+	<script defer src="/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+	<script defer src="/js/tween.umd.js"></script>
+	<script defer src="/three/build/three.min.js"></script>
+	<script src="http://localhost:4000/socket.io/socket.io.js" type="text/javascript"></script>
+	<link type="text/css" rel="stylesheet" href="/css/index.css">
+</head>
+
+<body>
+	<div class="init-screen d-flex flex-column align-items-center hide">
+		<div class="main-logo mb-2 mt-auto">
+			<i class="fas fa-meteor fa-3x text-warning"></i>
+		</div>
+		<h3 class="mt-2 title-block">
+			Particles
+		</h3>
+		<div class="d-flex flex-row init-screen-options init-loading justify-content-center mt-3 w-100 text-black-50">
+			<span class="loading mr-2">Loading</span>
+			<span class="icon">
+				<i class="fas fa-spinner fa-spin fa-fw fa-lg"></i>
+			</span>
+		</div>
+        <div class="input-group init-screen-options hide mb-auto">
+            <button class="btn btn-outline-secondary init-btn m-auto btn-block" type="button">Initiate</button>
+        </div>
+	</div>
+	<div class="loading-msg d-flex flex-column align-items-center init">
+		<div class="loading-cog mb-1 mt-auto">
+			<i class="fas fa-cog fa-spin fa-3x"></i>
+		</div>
+		<h5 class="loading-num">
+			0%
+		</h5>
+		<div class="progress">
+			<div class="progress-bar progress-bar-striped progress-bar-animated loading-progress" role="progressbar" style="width: 0%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
+		</div>
+		<h5 class="loading-text mb-auto mt-2">
+			Loading assets
+		</h5>
+	</div>
+
+	<div id="container"></div>
+
+	<script type="x-shader/x-vertex" id="vertexshader">
+		attribute float scale;
+		void main() {
+			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			gl_PointSize = scale * ( 300.0 / - mvPosition.z );
+			gl_Position = projectionMatrix * mvPosition;
+		}
+	</script>
+
+	<script type="x-shader/x-fragment" id="fragmentshader">
+		void main() {
+			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
+			gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 );
+		}
+	</script>
+
+	<script type="module">
+
+
+		var SEPARATION = 1, AMOUNTX = 300, AMOUNTY = 300;
+
+		var particles, count = 0;
+
+		var mouseX = 0, mouseY = 0;
+
+		var windowHalfX = window.innerWidth / 2;
+		var windowHalfY = window.innerHeight / 2;
+
+		// for function initiateParticleSystem
+		var numParticles, positions, scales, timeOffset, varianceOffset;
+
+		var renderParticles = false;
+
+		var particleTimeOffsets = [];
+		var particleVarianceOffsets = [];
+
+		function render() {
+
+			var positions = particles.geometry.attributes.position.array;
+			var scales = particles.geometry.attributes.scale.array;
+
+			var i = 0, j = 0;
+
+			for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+				for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+
+					timeOffset = particleTimeOffsets[ j ];
+					varianceOffset = particleVarianceOffsets[ j ];
+
+					positions[ i  ] = ( Math.cos( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
+					positions[ i + 2] = ( Math.sin( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
+					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 100 * timeOffset)
+					// positions[ i + 2 ] = ( Math.sin( count*varianceOffset*0.5 ) * 1000 * timeOffset)
+
+					scales[ j ] = ( Math.sin( ( timeOffset*30 + ix + count ) * 0.3 ) + 1 ) * 8 +
+									( Math.sin( ( timeOffset*30 + iy + count ) * 0.5 ) + 1 ) * 8;
+
+					// particleTimeOffsets[ j ] += ((Math.random()*2)-1)*0.1;
+					particleVarianceOffsets[ j ] += ((Math.random()*2)-1)*0.001;
+
+
+					i += 3;
+					j ++;
+
+				}
+
+			}
+			//
+			particles.geometry.attributes.position.needsUpdate = true;
+			particles.geometry.attributes.scale.needsUpdate = true;
+
+			count += 0.04;
+
+		}
+
+		function initiateParticleSystem() {
+
+			//
+
+			var numParticles = AMOUNTX * AMOUNTY;
+
+			var positions = new Float32Array( numParticles * 3 );
+			var scales = new Float32Array( numParticles );
+			var colors = new Float32Array( numParticles * 3 );
+
+			var i = 0, j = 0;
+
+			for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+				for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+
+					positions[ i ] = 0; // x
+					positions[ i + 1 ] = 0; // y
+					positions[ i + 2 ] = 0; // z
+
+					scales[ j ] = 1;
+
+					particleTimeOffsets[ j ] = Math.random();
+					particleVarianceOffsets[ j ] = Math.random();
+
+					i += 3;
+					j ++;
+
+				}
+
+			}
+
+			console.log(positions);
+
+			var geometry = new THREE.BufferGeometry();
+			geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+			geometry.setAttribute( 'scale', new THREE.BufferAttribute( scales, 1 ) );
+			geometry.setAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+
+			var material = new THREE.ShaderMaterial( {
+
+				// uniforms: {
+				// 	color: { value: new THREE.Color( 0xffffff ) },
+				// },
+				vertexShader: document.getElementById( 'vertexshader' ).textContent,
+				fragmentShader: document.getElementById( 'fragmentshader' ).textContent
+
+			} );
+
+			//
+
+			particles = new THREE.Points( geometry, material );
+			scene.add( particles );
+
+			//
+
+		}
+
+		var Socket;
+
+		var camera, mainCamera, spectatorCamera, fakeCamera, scene, renderer, light, atmosphericLight, controls, spectatorControls, clock, stats;
+
+		var pauseGame;
+
+		let moveDirection = {
+				left: 0,
+				right: 0,
+				forward: 0,
+				backward: 0,
+				up: 0,
+				rotate_left: 0,
+				rotate_right: 0,
+				down: 0
+			}
+
+		var rayCaster = new THREE.Raycaster();
+		var mousePosition = new THREE.Vector2();
+
+		import Stats from '/three/examples/jsm/libs/stats.module.js';
+		import { GUI } from '/three/examples/jsm/libs/dat.gui.module.js';
+
+		import { OrbitControls } from '/three/examples/jsm/controls/OrbitControls.js';
+
+		function join_screen_init() {
+			$(".init-screen-options").toggleClass("hide mt-3");
+			$(".init-btn").on("click", function() {
+				$(".init-screen").addClass("hide");
+				setTimeout(function() {
+					$(".loading-msg").removeClass("init");
+				}, 500);
+				setTimeout(function() {
+					$(".init-screen").remove();
+					initiateSockets();
+					loadAssets();
+				}, 750);
+			})
+		}
+
+		var manager = new THREE.LoadingManager();
+
+		manager.onProgress = function(url, itemsloaded = 1, itemstotal = 1) {
+
+			var percentComplete = 0;
+			if (itemstotal != 0) {
+				percentComplete = itemsloaded / itemstotal * 100;
+			}
+
+			console.log(Math.round(percentComplete, 2) + '%');
+
+			$(".loading-progress").css("width", percentComplete + "%");
+			$(".loading-num").html(Math.round(percentComplete) + "%");
+
+		};
+
+		manager.onError = function(url) {
+
+			console.log('There was an error loading ' + url);
+
+		};
+
+		manager.onLoad = function() {
+
+			$(".loading-msg .loading-text").html("Initializing environment");
+			$(".loading-msg").addClass("initialising");
+			$(".loading-num").html("100%");
+			$(".loading-progress").css("width", 100 + "%");
+
+			init()
+
+		}
+
+		var fontLoader = new THREE.FontLoader(manager);
+		var textureLoader = new THREE.TextureLoader(manager);
+
+		var defaultFont;
+		var gridTexture;
+
+		var chalkboardTextures = [],
+			fabrics = [],
+			grasses = [],
+			concrete_bm = [],
+			concreteTextures = [],
+			bricks_bm = [],
+			bricks = [],
+			roads = [],
+			road_markings = [],
+			stones = [],
+			woodTextures = []
+
+		var planet;
+
+		function loadAssets() {
+
+			fontLoader.load('/three/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+				defaultFont = font;
+			});
+			gridTexture = textureLoader.load('/img/textures/grid.jpg');
+			fabrics.push(textureLoader.load('/img/textures/rsz_fabric0-min.png'));
+			fabrics.push(textureLoader.load('/img/textures/rsz_fabric1-min.png'));
+			fabrics.push(textureLoader.load('/img/textures/rsz_fabric2-min.jpg'));
+			fabrics.push(textureLoader.load('/img/textures/rsz_fabric3-min.jpg'));
+			fabrics.push(textureLoader.load('/img/textures/rsz_fabric4-min.jpg'));
+			grasses.push(textureLoader.load('/img/textures/rsz_grass0-min.jpg'));
+			grasses.push(textureLoader.load('/img/textures/rsz_grass1-min.jpg'));
+			grasses.push(textureLoader.load('/img/textures/rsz_grass2-min.jpg'));
+			concrete_bm.push(textureLoader.load('/img/textures/rsz_concrete0_bm-min.png'));
+			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete0-min.png'));
+			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete1-min.png'));
+			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete2-min.jpg'));
+			bricks_bm.push(textureLoader.load('/img/textures/rsz_bricks0_bm-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks0-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks1-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks2-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks3-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks4-min.png'));
+			bricks.push(textureLoader.load('/img/textures/rsz_bricks5-min.jpg'));
+			roads.push(textureLoader.load('/img/textures/roads0-min.png'));
+			roads.push(textureLoader.load('/img/textures/roads1-min.png'));
+			roads.push(textureLoader.load('/img/textures/roads2-min.png'));
+			road_markings.push(textureLoader.load('/img/textures/road_markings/2ln_g.png'));
+			road_markings.push(textureLoader.load('/img/textures/road_markings/2lnh_g.png'));
+			stones.push(textureLoader.load('/img/textures/stones0-min.png'));
+			woodTextures.push(textureLoader.load('/img/textures/rsz_wood1-min.jpg'));
+			woodTextures.push(textureLoader.load('/img/textures/rsz_wood2-min.jpg'));
+			planet = textureLoader.load(`https://solartextures.b-cdn.net/2k_mercury.jpg`);
+
+		}
+
+
+
+		// Kick-off renderer
+		var frameCount = 0;
+
+		function animate() {
+			frameCount++;
+
+			if (pauseGame) {
+				return;
+			}
+
+
+			let deltaTime = clock.getDelta();
+
+			TWEEN.update();
+
+			controls.update();
+			spectatorControls.update();
+			stats.update();
+			if(renderParticles) render();
+
+			renderer.render(scene, mainCamera);
+			requestAnimationFrame(animate);
+			if (frameCount % 9 == 0) {
+
+			}
+			// socket.io
+			if (frameCount % 5 == 0) {
+
+			}
+		}
+
+		async function init() {
+
+			setTimeout(function() {
+				$("body").addClass("initiate");
+				$(".loading-msg").addClass("hide");
+				setTimeout(function() {
+					$(".loading-msg").remove();
+				}, 600);
+			}, 1200);
+
+			clock = new THREE.Clock();
+
+			// Setup renderer
+			renderer = new THREE.WebGLRenderer({
+				antialias: true
+			});
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.shadowMap.enabled = true;
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			// Setup scene
+			scene = new THREE.Scene();
+
+			camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 35000);
+			camera.position.set(1000, 100, 200);
+
+			camera.rotation.x = Math.PI;
+
+			spectatorCamera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 35000);
+			spectatorCamera.position.set(660, 800, 300);
+
+			mainCamera = camera;
+
+			scene.background = new THREE.Color(0x000000);
+			// scene.fog = new THREE.Fog(0xcce0ff, 2.00, 2000);
+			// lights
+
+			atmosphericLight = new THREE.HemisphereLight(0x394552, 0xa39b84, 1);
+
+			scene.add(atmosphericLight);
+
+			light = new THREE.DirectionalLight(0xffffff, 0.7);
+			light.position.set(30000, 30000, 1000);
+
+			scene.add(light.target);
+
+			// shadows
+
+			light.castShadow = true;
+
+			light.shadow.mapSize.width = 1024 * 4;
+			light.shadow.mapSize.height = 1024 * 4;
+
+			var d = 200.0;
+
+			light.shadow.camera.left = -d;
+			light.shadow.camera.right = d;
+			light.shadow.camera.top = d;
+			light.shadow.camera.bottom = -d;
+
+			light.shadow.camera.far = 3500.0;
+
+			scene.add(light);
+
+			// Add camera controls
+			controls = new OrbitControls(camera, renderer.domElement);
+			// controls.maxPolarAngle = Math.PI * 0.35;
+			// controls.minPolarAngle = Math.PI * 0.35;
+			controls.minDistance = 5000;
+			controls.maxDistance = 7000;
+			controls.enabled = true;
+			controls.enablePan = false;
+			controls.enableKeys = false;
+			controls.autoRotate = true;
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.15;
+			controls.autoRotateSpeed = -2.5;
+
+			spectatorControls = new OrbitControls(spectatorCamera, renderer.domElement);
+			spectatorControls.maxPolarAngle = Math.PI * 0.35;
+			spectatorControls.minPolarAngle = Math.PI * 0.15;
+			spectatorControls.minDistance = 300;
+			spectatorControls.maxDistance = 600;
+			spectatorControls.enableKeys = false;
+			spectatorControls.enabled = false;
+			spectatorControls.enablePan = true;
+			spectatorControls.autoRotate = true;
+			spectatorControls.enableDamping = true;
+			spectatorControls.dampingFactor = 0.15;
+			spectatorControls.autoRotateSpeed = 2.5;
+
+			stats = new Stats();
+			container.appendChild( stats.dom );
+
+			initiateParticleSystem();
+
+			// planet
+		  	scene.add(new THREE.Mesh(new THREE.SphereBufferGeometry(900, 32, 32), new THREE.MeshBasicMaterial({map:planet, bumpMap:planet, bumpScale: 12, shininess: 25})));
+
+			setupEventHandlers();
+
+			animate();
+
+		}
+
+		function setupEventHandlers() {
+
+			window.addEventListener('keydown', handleKeyDown, false);
+			window.addEventListener('keyup', handleKeyUp, false);
+
+		}
+
+
+		function handleKeyDown(event) {
+
+			let keyCode = event.keyCode;
+
+			switch (keyCode) {
+
+				case 80: //p: pause
+					pauseGame = !pauseGame;
+					animate();
+					break;
+
+				case 67: //c: toggle camera
+					mainCamera = (mainCamera == camera) ? spectatorCamera : camera;
+					controls.enabled = !controls.enabled;
+					spectatorControls.enabled = !spectatorControls.enabled;
+					break;
+
+				case 17: //ctrl: release thrust
+					moveDirection.down = 1
+					break;
+
+				case 65: //A: Rotate left
+					moveDirection.rotate_left = 1
+					break;
+
+				case 68: //D: Rotate right
+					moveDirection.rotate_right = 1
+					break;
+
+				case 32: //SPACEBAR: Up
+					renderParticles = !renderParticles;
+					moveDirection.up = 1
+					break;
+
+				case 37: //LEFT arrow: Left
+					moveDirection.left = 1
+					break;
+
+				case 39: //RIGHT arrow: Right
+					moveDirection.right = 1
+					break;
+
+				case 40: //DOWN arrow: Backward
+					moveDirection.backward = 1
+					break;
+
+				case 38: //UP arrow: Forward
+					moveDirection.forward = 1
+					break;
+
+			}
+		}
+
+
+		function handleKeyUp(event) {
+			let keyCode = event.keyCode;
+
+			switch (keyCode) {
+
+				case 17: //ctrl: release thrust
+					moveDirection.down = 0
+					break;
+
+				case 65: //A: Rotate left
+					moveDirection.rotate_left = 0
+					break;
+
+				case 68: //D: Rotate right
+					moveDirection.rotate_right = 0
+					break;
+
+				case 32: //SPACEBAR: Up
+					moveDirection.up = 0
+					break;
+
+				case 37: //LEFT arrow: Left
+					moveDirection.left = 0
+					break;
+
+				case 39: //RIGHT arrow: Right
+					moveDirection.right = 0
+					break;
+
+				case 40: //DOWN arrow: Backward
+					moveDirection.backward = 0
+					break;
+
+				case 38: //UP arrow: Forward
+					moveDirection.forward = 0
+					break;
+
+			}
+
+		}
+
+        function initiateSockets() {
+
+            Socket = io.connect('http://localhost:4000/web');
+
+            socketListenersOn();
+
+        }
+
+        function onSocketConnection() {
+
+            // initiateUI();
+            // initiateLoops();
+
+        }
+
+        function socketListenersOn() {
+
+            Socket.on('connect', function(res) {
+                console.log("connected!");
+                onSocketConnection();
+            });
+
+            Socket.on('msg', (msg) => { updateConsole(msg); });
+
+        }
+
+        var consoleLog = [];
+
+        function updateConsole(msg) {
+            consoleLog.push( msg );
+            let mainLog = $(".bottom-card .console-log");
+            let overflowLog = $(".console-log-panel .console-log");
+
+            mainLog.html('');
+            consoleLog.slice(Math.max(consoleLog.length - 2, 0)).forEach((logMsg)=>{
+                mainLog.append(`
+                    <span class="console-msg">${logMsg}</span>
+                `);
+            });
+
+            if(consoleLog.length>2) {
+                let overflowMsg = consoleLog[consoleLog.length - 3];
+                let newMsg = $(`<span class="console-msg">${overflowMsg}</span>`);
+                overflowLog.append(newMsg);
+                setTimeout(()=>newMsg.addClass("init"), 50);
+                setTimeout(()=>newMsg.remove(), 12000);
+            }
+        }
+
+		window.onload = (e) => {
+			$(".init-screen").removeClass("hide");
+			join_screen_init();
+		}
+
+	</script>
+
+    <div class="align-items-center bottom-card position-fixed align-items-stretch rounded-0 w-100 d-flex">
+        <div class="d-flex flex-row btn-group tor-toolbar">
+            <div class="btn-group dropup">
+                <button type="button" class="no-arrow btn btn-dark btn-lg dropdown-toggle rounded-0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-meteor text-warning fa-fw"></i>
+                </button>
+                <div class="dropdown-menu rounded-0 m-0" aria-labelledby="dropdownMenu2">
+                    <button class="dropdown-item restart-daemon-btn" type="button">Restart daemon</button>
+                    <button class="dropdown-item utility-btn" type="button">Uitility action</button>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex w-100 position-relative bg-warning">
+            <h4 class="d-none masthead-brand position-absolute d-sm-flex flex-column align-self-center ml-3">
+                Particles
+            </h4>
+            <small class="console-log ml-auto my-1 mr-3 d-flex flex-column align-items-end"></small>
+        </div>
+    </div>
+
+    <div class="console-log-panel">
+        <small class="console-log ml-auto my-1 mr-3 d-flex flex-column align-items-end"></small>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,145 @@
+/* loading.scss */
+
+.init-screen {
+
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    z-index: 1101;
+    opacity: 1;
+    background: white;
+    transition: opacity 500ms ease-in-out;
+
+    .main-logo {
+        transition: transform 300ms ease-in-out;
+    }
+    .title-block {
+        transition: max-height 250ms ease-in-out;
+        max-height: 50px;
+        overflow: hidden;
+    }
+    .init-btn {
+        transition: transform 350ms ease-in-out;
+    }
+
+    .init-screen-options {
+        max-width: 200px;
+        transition: max-height 200ms 100ms ease-in-out, margin 200ms 100ms ease-in-out;
+        overflow-y: hidden;
+        max-height: 500px;
+    }
+
+    .init-screen-options.hide {
+        transition: max-height 200ms ease-in-out, margin 200ms ease-in-out;
+        max-height: 0px;
+    }
+
+}
+
+.init-screen.hide {
+
+    opacity: 0;
+
+    .main-logo {
+        transform: translateY(-100vh);
+    }
+
+    .title-block {
+        max-height: 0px;
+    }
+
+    .init-btn {
+        transform: translateY(100vh);
+    }
+
+}
+
+
+.loading-msg {
+
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    z-index: 1100;
+    opacity: 1;
+    background: white;
+    transition: opacity 200ms ease-in-out;
+
+    .progress {
+        width: 20rem;
+        max-height: 20px;
+        transition: all 200ms ease-in-out;
+        overflow: hidden;
+        transform: translateX(0vw);
+    }
+
+    .loading-text {
+        color: #636363;
+        display: inline-block;
+        text-align: center;
+        padding: 0rem 0rem 0.5rem 0rem;
+        transition: all 200ms 200ms ease-in-out;
+        transform: translateX(0vw);
+    }
+
+    .loading-cog {
+        color: #09abe8;
+        max-height: 0px;
+        overflow: hidden;
+    }
+
+    .loading-num {
+        max-height: 100px;
+        overflow: hidden;
+        transition: all 200ms 100ms ease-in-out;
+        transform: translateX(0vw);
+    }
+}
+
+
+
+.loading-msg.init {
+
+    .progress {
+        max-height: 0px;
+    }
+
+    .loading-text {
+        color: #636363;
+        display: inline-block;
+        text-align: center;
+        padding: 0rem 0rem 0.5rem 0rem;
+        transform: translateX(-100vw);
+    }
+
+    .loading-num {
+        max-height: 0px;
+    }
+
+}
+
+.loading-msg.hide {
+    opacity: 0;
+}
+
+.loading-msg.initialising {
+
+    .progress {
+        max-height: 0px;
+        padding: 0rem 0rem 0rem 0rem;
+    }
+    .loading-text {
+        max-height: 0px;
+        transition: all 200ms 100ms ease-in-out;
+        padding: 0rem 0rem 0rem 0rem;
+    }
+    .loading-cog {
+        max-height: 100px;
+        transition: all 200ms 300ms ease-in-out;
+    }
+    .loading-num {
+        max-height: 0px;
+        transition: all 300ms ease-in-out;
+    }
+
+}
