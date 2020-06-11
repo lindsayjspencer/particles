@@ -54,15 +54,17 @@
 		attribute float scale;
 		void main() {
 			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			gl_PointSize = scale * ( 300.0 / - mvPosition.z );
+			gl_PointSize = scale/3.0;
 			gl_Position = projectionMatrix * mvPosition;
 		}
 	</script>
 
 	<script type="x-shader/x-fragment" id="fragmentshader">
+		uniform float time;
 		void main() {
 			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
-			gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 );
+			gl_FragColor = vec4( 1.0, 0.43, 0.02, 1.0-(length( vec2( 0.5, 0.5 ) - gl_PointCoord ))*2.0 );
+			// time += 0.1;
 		}
 	</script>
 
@@ -82,6 +84,7 @@
 		var numParticles, positions, scales, timeOffset, varianceOffset;
 
 		var renderParticles = false;
+		var renderSpeed = 0.5;
 
 		var particleTimeOffsets = [];
 		var particleVarianceOffsets = [];
@@ -102,15 +105,11 @@
 
 					positions[ i  ] = ( Math.cos( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
 					positions[ i + 2] = ( Math.sin( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
-					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 100 * timeOffset)
+					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 200 * timeOffset)
 					// positions[ i + 2 ] = ( Math.sin( count*varianceOffset*0.5 ) * 1000 * timeOffset)
 
 					scales[ j ] = ( Math.sin( ( timeOffset*30 + ix + count ) * 0.3 ) + 1 ) * 8 +
 									( Math.sin( ( timeOffset*30 + iy + count ) * 0.5 ) + 1 ) * 8;
-
-					// particleTimeOffsets[ j ] += ((Math.random()*2)-1)*0.1;
-					particleVarianceOffsets[ j ] += ((Math.random()*2)-1)*0.001;
-
 
 					i += 3;
 					j ++;
@@ -122,7 +121,7 @@
 			particles.geometry.attributes.position.needsUpdate = true;
 			particles.geometry.attributes.scale.needsUpdate = true;
 
-			count += 0.04;
+			count += renderSpeed;
 
 		}
 
@@ -167,9 +166,11 @@
 
 			var material = new THREE.ShaderMaterial( {
 
-				// uniforms: {
-				// 	color: { value: new THREE.Color( 0xffffff ) },
-				// },
+				uniforms: {
+					// color: { value: new THREE.Color( 0xffffff ) },
+					time: { value: 1.0 },
+				},
+				transparent: true,
 				vertexShader: document.getElementById( 'vertexshader' ).textContent,
 				fragmentShader: document.getElementById( 'fragmentshader' ).textContent
 
@@ -275,7 +276,7 @@
 			stones = [],
 			woodTextures = []
 
-		var planet;
+		var planet, planetObj;
 
 		function loadAssets() {
 
@@ -338,12 +339,19 @@
 
 			renderer.render(scene, mainCamera);
 			requestAnimationFrame(animate);
+			planetObj.rotation.y -= 0.004;
+			if(frameCount==100) {
+				renderParticles = true;
+			}
 			if (frameCount % 9 == 0) {
 
 			}
 			// socket.io
 			if (frameCount % 5 == 0) {
 
+			}
+			if(frameCount>100 && renderSpeed>0.01) {
+				renderSpeed *= 0.99;
 			}
 		}
 
@@ -370,7 +378,7 @@
 			// Setup scene
 			scene = new THREE.Scene();
 
-			camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 35000);
+			camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 35000);
 			camera.position.set(1000, 100, 200);
 
 			camera.rotation.x = Math.PI;
@@ -389,7 +397,7 @@
 			scene.add(atmosphericLight);
 
 			light = new THREE.DirectionalLight(0xffffff, 0.7);
-			light.position.set(30000, 30000, 1000);
+			light.position.set(3000, 3000, 1000);
 
 			scene.add(light.target);
 
@@ -423,7 +431,7 @@
 			controls.autoRotate = true;
 			controls.enableDamping = true;
 			controls.dampingFactor = 0.15;
-			controls.autoRotateSpeed = -2.5;
+			controls.autoRotateSpeed = -0.7;
 
 			spectatorControls = new OrbitControls(spectatorCamera, renderer.domElement);
 			spectatorControls.maxPolarAngle = Math.PI * 0.35;
@@ -436,7 +444,7 @@
 			spectatorControls.autoRotate = true;
 			spectatorControls.enableDamping = true;
 			spectatorControls.dampingFactor = 0.15;
-			spectatorControls.autoRotateSpeed = 2.5;
+			spectatorControls.autoRotateSpeed = 0.2;
 
 			stats = new Stats();
 			container.appendChild( stats.dom );
@@ -444,7 +452,8 @@
 			initiateParticleSystem();
 
 			// planet
-		  	scene.add(new THREE.Mesh(new THREE.SphereBufferGeometry(900, 32, 32), new THREE.MeshBasicMaterial({map:planet, bumpMap:planet, bumpScale: 12, shininess: 25})));
+			planetObj = new THREE.Mesh(new THREE.SphereBufferGeometry(500, 32, 32), new THREE.MeshPhysicalMaterial({map:planet, bumpMap:planet, bumpScale: 52}));
+		  	scene.add(planetObj);
 
 			setupEventHandlers();
 
@@ -456,6 +465,16 @@
 
 			window.addEventListener('keydown', handleKeyDown, false);
 			window.addEventListener('keyup', handleKeyUp, false);
+			window.addEventListener( 'resize', onWindowResize, false );
+
+		}
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
 
 		}
 
