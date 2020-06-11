@@ -101,9 +101,9 @@
 					timeOffset = particleTimeOffsets[ j ];
 					varianceOffset = particleVarianceOffsets[ j ];
 
-					positions[ i  ] = ( Math.cos( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
-					positions[ i + 2] = ( Math.sin( (0+count)*varianceOffset/6 ) * 1000 / timeOffset)
-					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 200 * timeOffset)
+					positions[ i  ] = ( Math.cos( (5000+count)*varianceOffset/6 ) * 1400 / timeOffset)
+					positions[ i + 2] = ( Math.sin( (5000+count)*varianceOffset/6 ) * 1400 / timeOffset)
+					positions[ i + 1 ] = ( Math.sin( (5000+count)*varianceOffset ) * 150 * timeOffset)
 					// positions[ i + 2 ] = ( Math.sin( count*varianceOffset*0.5 ) * 1000 * timeOffset)
 
 					scales[ j ] = ( Math.sin( ( timeOffset*30 + ix + count ) * 0.3 ) + 1 ) * 8 +
@@ -169,6 +169,7 @@
 					time: { value: 1.0 },
 				},
 				transparent: true,
+				blending: THREE.AdditiveBlending,
 				vertexShader: document.getElementById( 'vertexshader' ).textContent,
 				fragmentShader: document.getElementById( 'fragmentshader' ).textContent
 
@@ -210,7 +211,7 @@
 
 		function join_screen_init() {
 			$(".init-screen-options").toggleClass("hide mt-3");
-			$(".init-btn").on("click", function() {
+			// $(".init-btn").on("click", function() {
 				$(".init-screen").addClass("hide");
 				setTimeout(function() {
 					$(".loading-msg").removeClass("init");
@@ -220,7 +221,7 @@
 					initiateSockets();
 					loadAssets();
 				}, 750);
-			})
+			// })
 		}
 
 		var manager = new THREE.LoadingManager();
@@ -421,8 +422,8 @@
 			controls = new OrbitControls(camera, renderer.domElement);
 			// controls.maxPolarAngle = Math.PI * 0.35;
 			// controls.minPolarAngle = Math.PI * 0.35;
-			controls.minDistance = 5000;
-			controls.maxDistance = 7000;
+			controls.minDistance = 10000;
+			controls.maxDistance = 10000;
 			controls.enabled = true;
 			controls.enablePan = false;
 			controls.enableKeys = false;
