@@ -3,6 +3,13 @@
 
 <head>
 	<title>Particles</title>
+	<link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon/favicon-16x16.png">
+	<link rel="manifest" href="/img/favicon/site.webmanifest">
+	<link rel="mask-icon" href="/img/favicon/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#da532c">
+	<meta name="theme-color" content="#ffffff">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<script defer src="/jquery/dist/jquery.min.js"></script>
@@ -11,7 +18,7 @@
 	<script defer src="/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 	<script defer src="/js/tween.umd.js"></script>
 	<script defer src="/three/build/three.min.js"></script>
-	<script src="http://localhost:3500/socket.io/socket.io.js" type="text/javascript"></script>
+	<!-- <script src="http://localhost:3500/socket.io/socket.io.js" type="text/javascript"></script> -->
 	<link type="text/css" rel="stylesheet" href="/css/index.css">
 </head>
 
@@ -54,7 +61,7 @@
 		attribute float scale;
 		void main() {
 			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			gl_PointSize = scale/5.0;
+			gl_PointSize = scale/8.0;
 			gl_Position = projectionMatrix * mvPosition;
 		}
 	</script>
@@ -69,7 +76,7 @@
 	<script type="module">
 
 
-		var SEPARATION = 1, AMOUNTX = 300, AMOUNTY = 300;
+		var SEPARATION = 1, AMOUNTX = 250, AMOUNTY = 250;
 
 		var particles, count = 0;
 
@@ -79,10 +86,11 @@
 		var windowHalfY = window.innerHeight / 2;
 
 		// for function initiateParticleSystem
+		var planetObjRotationSpeed = 0.004;
 		var numParticles, positions, scales, timeOffset, varianceOffset, speedOffset, countOffset;
 
 		var renderParticles = false;
-		var renderSpeed = 0.5;
+		var renderSpeed = {speed:0.05};
 
 		var particleTimeOffsets = [];
 		var particleVarianceOffsets = [];
@@ -104,15 +112,18 @@
 					varianceOffset = particleVarianceOffsets[ j ];
 
 					speedOffset = particleSpeedOffsets[ j ];
-					particleCountOffsets[ j ] += speedOffset;
 					countOffset = particleCountOffsets[ j ];
 
-					positions[ i  ] = ( Math.cos( (countOffset+count)*varianceOffset/6 ) * 1400 / timeOffset)
-					positions[ i + 2] = ( Math.sin( (countOffset+count)*varianceOffset/6 ) * 1400 / timeOffset)
-					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 150 * timeOffset)
+					if(renderSpeed.speed>0) {
+						particleCountOffsets[ j ] += speedOffset;
+					}
 
-					scales[ j ] = ( Math.sin( ( timeOffset*30 + ix + count ) * 0.3 ) + 1 ) * 8 +
-									( Math.sin( ( timeOffset*30 + iy + count ) * 0.5 ) + 1 ) * 8;
+					positions[ i  ] = ( Math.cos( (countOffset+count)*varianceOffset*6 ) * 1000 / timeOffset)
+					positions[ i + 2] = ( Math.sin( (countOffset+count)*varianceOffset*6 ) * 1000 / timeOffset)
+					positions[ i + 1 ] = ( Math.sin( (10000+count)*varianceOffset/6 ) * 150 / timeOffset)
+
+					scales[ j ] = ( Math.sin( ( varianceOffset*300 + count ) * 0.3 ) + 1 ) * 10 +
+									( Math.cos( ( varianceOffset*300 + count ) * 0.5 ) + 1 ) * 10;
 
 					i += 3;
 					j ++;
@@ -124,7 +135,7 @@
 			particles.geometry.attributes.position.needsUpdate = true;
 			particles.geometry.attributes.scale.needsUpdate = true;
 
-			count += renderSpeed;
+			count += renderSpeed.speed;
 
 		}
 
@@ -150,10 +161,10 @@
 
 					scales[ j ] = 1;
 
-					particleTimeOffsets[ j ] = Math.random();
-					particleVarianceOffsets[ j ] = Math.random();
+					particleTimeOffsets[ j ] = 0.1+Math.random();
+					particleVarianceOffsets[ j ] = 0.2+Math.random();
 
-					particleSpeedOffsets[ j ] = Math.random()/10;
+					particleSpeedOffsets[ j ] = 0.01+Math.random()/100;
 					particleCountOffsets[ j ] = 0;
 
 					i += 3;
@@ -177,6 +188,7 @@
 					time: { value: 1.0 },
 				},
 				transparent: true,
+				side: THREE.DoubleSide,
 				blending: THREE.AdditiveBlending,
 				vertexShader: document.getElementById( 'vertexshader' ).textContent,
 				fragmentShader: document.getElementById( 'fragmentshader' ).textContent
@@ -220,16 +232,18 @@
 		function join_screen_init() {
 			$(".init-screen-options").toggleClass("hide mt-3");
 			// $(".init-btn").on("click", function() {
+			setTimeout(()=>{
 				$(".init-screen").addClass("hide");
 				setTimeout(function() {
 					$(".loading-msg").removeClass("init");
 				}, 500);
 				setTimeout(function() {
 					$(".init-screen").remove();
-					initiateSockets();
+					// initiateSockets();
 					loadAssets();
 				}, 750);
 			// })
+			}, 1000);
 		}
 
 		var manager = new THREE.LoadingManager();
@@ -287,37 +301,37 @@
 
 		function loadAssets() {
 
-			fontLoader.load('/three/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-				defaultFont = font;
-			});
-			gridTexture = textureLoader.load('/img/textures/grid.jpg');
-			fabrics.push(textureLoader.load('/img/textures/rsz_fabric0-min.png'));
-			fabrics.push(textureLoader.load('/img/textures/rsz_fabric1-min.png'));
-			fabrics.push(textureLoader.load('/img/textures/rsz_fabric2-min.jpg'));
-			fabrics.push(textureLoader.load('/img/textures/rsz_fabric3-min.jpg'));
-			fabrics.push(textureLoader.load('/img/textures/rsz_fabric4-min.jpg'));
-			grasses.push(textureLoader.load('/img/textures/rsz_grass0-min.jpg'));
-			grasses.push(textureLoader.load('/img/textures/rsz_grass1-min.jpg'));
-			grasses.push(textureLoader.load('/img/textures/rsz_grass2-min.jpg'));
-			concrete_bm.push(textureLoader.load('/img/textures/rsz_concrete0_bm-min.png'));
-			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete0-min.png'));
-			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete1-min.png'));
-			concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete2-min.jpg'));
-			bricks_bm.push(textureLoader.load('/img/textures/rsz_bricks0_bm-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks0-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks1-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks2-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks3-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks4-min.png'));
-			bricks.push(textureLoader.load('/img/textures/rsz_bricks5-min.jpg'));
-			roads.push(textureLoader.load('/img/textures/roads0-min.png'));
-			roads.push(textureLoader.load('/img/textures/roads1-min.png'));
-			roads.push(textureLoader.load('/img/textures/roads2-min.png'));
-			road_markings.push(textureLoader.load('/img/textures/road_markings/2ln_g.png'));
-			road_markings.push(textureLoader.load('/img/textures/road_markings/2lnh_g.png'));
-			stones.push(textureLoader.load('/img/textures/stones0-min.png'));
-			woodTextures.push(textureLoader.load('/img/textures/rsz_wood1-min.jpg'));
-			woodTextures.push(textureLoader.load('/img/textures/rsz_wood2-min.jpg'));
+			// fontLoader.load('/three/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+			// 	defaultFont = font;
+			// });
+			// gridTexture = textureLoader.load('/img/textures/grid.jpg');
+			// fabrics.push(textureLoader.load('/img/textures/rsz_fabric0-min.png'));
+			// fabrics.push(textureLoader.load('/img/textures/rsz_fabric1-min.png'));
+			// fabrics.push(textureLoader.load('/img/textures/rsz_fabric2-min.jpg'));
+			// fabrics.push(textureLoader.load('/img/textures/rsz_fabric3-min.jpg'));
+			// fabrics.push(textureLoader.load('/img/textures/rsz_fabric4-min.jpg'));
+			// grasses.push(textureLoader.load('/img/textures/rsz_grass0-min.jpg'));
+			// grasses.push(textureLoader.load('/img/textures/rsz_grass1-min.jpg'));
+			// grasses.push(textureLoader.load('/img/textures/rsz_grass2-min.jpg'));
+			// concrete_bm.push(textureLoader.load('/img/textures/rsz_concrete0_bm-min.png'));
+			// concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete0-min.png'));
+			// concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete1-min.png'));
+			// concreteTextures.push(textureLoader.load('/img/textures/rsz_concrete2-min.jpg'));
+			// bricks_bm.push(textureLoader.load('/img/textures/rsz_bricks0_bm-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks0-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks1-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks2-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks3-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks4-min.png'));
+			// bricks.push(textureLoader.load('/img/textures/rsz_bricks5-min.jpg'));
+			// roads.push(textureLoader.load('/img/textures/roads0-min.png'));
+			// roads.push(textureLoader.load('/img/textures/roads1-min.png'));
+			// roads.push(textureLoader.load('/img/textures/roads2-min.png'));
+			// road_markings.push(textureLoader.load('/img/textures/road_markings/2ln_g.png'));
+			// road_markings.push(textureLoader.load('/img/textures/road_markings/2lnh_g.png'));
+			// stones.push(textureLoader.load('/img/textures/stones0-min.png'));
+			// woodTextures.push(textureLoader.load('/img/textures/rsz_wood1-min.jpg'));
+			// woodTextures.push(textureLoader.load('/img/textures/rsz_wood2-min.jpg'));
 			planet = textureLoader.load(`https://solartextures.b-cdn.net/2k_mars.jpg`);
 
 		}
@@ -326,6 +340,7 @@
 
 		// Kick-off renderer
 		var frameCount = 0;
+		var slowDown, tiltUp, tiltDown, zoomOut;
 
 		function animate() {
 			frameCount++;
@@ -346,9 +361,27 @@
 
 			renderer.render(scene, mainCamera);
 			requestAnimationFrame(animate);
-			planetObj.rotation.y -= 0.004;
+			planetObj.rotation.y -= planetObjRotationSpeed;
+			console.log(renderSpeed.speed)
 			if(frameCount==100) {
 				renderParticles = true;
+				planetObjRotationSpeed = 0.08
+				controls.autoRotateSpeed = -1;
+				zoomOut = new TWEEN.Tween(controls).to({minDistance:15000,maxDistance:15000}, 9000).easing(TWEEN.Easing.Quadratic.InOut).delay(300);
+				slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:20}, 3000);
+				tiltUp = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.45,minPolarAngle:Math.PI*0.45}, 3000).delay(700).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+							controls.minPolarAngle = Math.PI*0.45;
+							controls.maxPolarAngle = Math.PI*0.45;
+						});
+				tiltDown = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.55,minPolarAngle:Math.PI*0.55}, 3000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+							controls.minPolarAngle = Math.PI*0.55;
+							controls.maxPolarAngle = Math.PI*0.55;
+						});;
+				zoomOut.start();
+				tiltUp.chain(tiltDown);
+				tiltDown.chain(tiltUp);
+				tiltDown.start();
+				slowDown.start();
 			}
 			if (frameCount % 9 == 0) {
 
@@ -357,8 +390,8 @@
 			if (frameCount % 5 == 0) {
 
 			}
-			if(frameCount>100 && renderSpeed>0.01) {
-				renderSpeed *= 0.98;
+			if(frameCount>118 && renderSpeed.speed>0.01) {
+				renderSpeed.speed *= 0.98;
 			}
 		}
 
@@ -386,12 +419,12 @@
 			scene = new THREE.Scene();
 
 			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 35000);
-			camera.position.set(1000, 100, 200);
+			camera.position.set(1000, -110, 200);
 
 			camera.rotation.x = Math.PI;
 
-			spectatorCamera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 1, 35000);
-			spectatorCamera.position.set(660, 800, 300);
+			spectatorCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 35000);
+			spectatorCamera.position.set(660, 0, 300);
 
 			mainCamera = camera;
 
@@ -428,30 +461,31 @@
 
 			// Add camera controls
 			controls = new OrbitControls(camera, renderer.domElement);
-			// controls.maxPolarAngle = Math.PI * 0.35;
-			// controls.minPolarAngle = Math.PI * 0.35;
+			controls.maxPolarAngle = Math.PI * 0.45;
+			controls.minPolarAngle = Math.PI * 0.45;
 			controls.minDistance = 10000;
 			controls.maxDistance = 10000;
-			controls.enabled = true;
+			controls.enabled = false;
 			controls.enablePan = false;
 			controls.enableKeys = false;
 			controls.autoRotate = true;
-			controls.enableDamping = true;
+			controls.enableDamping = false;
 			controls.dampingFactor = 0.15;
-			controls.autoRotateSpeed = -0.7;
+			controls.autoRotateSpeed = 15;
 
 			spectatorControls = new OrbitControls(spectatorCamera, renderer.domElement);
 			// spectatorControls.maxPolarAngle = Math.PI * 0.35;
 			// spectatorControls.minPolarAngle = Math.PI * 0.15;
-			spectatorControls.minDistance = 1000;
-			spectatorControls.maxDistance = 2000;
+			spectatorControls.target = new THREE.Vector3(4000, -200, 4000);
+			spectatorControls.minDistance = 8000;
+			spectatorControls.maxDistance = 8000;
 			spectatorControls.enableKeys = false;
-			spectatorControls.enabled = false;
-			spectatorControls.enablePan = true;
-			// spectatorControls.autoRotate = true;
+			spectatorControls.enabled = true;
+			spectatorControls.enablePan = false;
+			spectatorControls.autoRotate = true;
 			spectatorControls.enableDamping = true;
 			spectatorControls.dampingFactor = 0.15;
-			// spectatorControls.autoRotateSpeed = 0.2;
+			spectatorControls.autoRotateSpeed = -1;
 
 			stats = new Stats();
 			container.appendChild( stats.dom );
@@ -461,19 +495,18 @@
 			// planet
 			planet.anisotropy = 16;
 			planetObj = new THREE.Mesh(
-				new THREE.SphereBufferGeometry(800, 64, 64),
+				new THREE.SphereBufferGeometry(1500, 64, 64),
 				new THREE.MeshPhysicalMaterial({
 					map:planet,
 					bumpMap:planet,
 					bumpScale: 42,
 					roughness: 1.0,
 					reflectivity: 1.0,
-					emissive: new THREE.Color(0.6,0,0)
+					emissive: new THREE.Color(0,0,0),
+					color: new THREE.Color(0.8,0.5,0)
 				})
 			);
 			scene.add(planetObj);
-
-			new TWEEN.Tween(planetObj.material.emissive).to({r: 0,g: 0,b: 0}, 5000).start();
 
 			setupEventHandlers();
 
@@ -543,7 +576,18 @@
 					break;
 
 				case 32: //SPACEBAR: Up
-					renderParticles = !renderParticles;
+					planetObjRotationSpeed = planetObjRotationSpeed==0.002 ? 0.08 : 0.002;
+					if(planetObjRotationSpeed!=0.08) {
+						tiltUp.pause();
+						tiltDown.pause();
+						controls.autoRotateSpeed = 0.2;
+						renderSpeed.speed = -0.0001;
+					} else {
+						tiltDown.resume();
+						tiltUp.resume();
+						controls.autoRotateSpeed = 20;
+						renderSpeed.speed = 0.01;
+					}
 					moveDirection.up = 1
 					break;
 
