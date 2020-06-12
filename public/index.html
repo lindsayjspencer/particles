@@ -11,7 +11,7 @@
 	<script defer src="/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 	<script defer src="/js/tween.umd.js"></script>
 	<script defer src="/three/build/three.min.js"></script>
-	<script src="http://localhost:4000/socket.io/socket.io.js" type="text/javascript"></script>
+	<script src="http://localhost:3500/socket.io/socket.io.js" type="text/javascript"></script>
 	<link type="text/css" rel="stylesheet" href="/css/index.css">
 </head>
 
@@ -54,14 +54,14 @@
 		attribute float scale;
 		void main() {
 			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			gl_PointSize = scale/3.0;
+			gl_PointSize = scale/5.0;
 			gl_Position = projectionMatrix * mvPosition;
 		}
 	</script>
 
 	<script type="x-shader/x-fragment" id="fragmentshader">
 		void main() {
-			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
+			// if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
 			gl_FragColor = vec4( 1.0, 0.43, 0.02, 1.0-(length( vec2( 0.5, 0.5 ) - gl_PointCoord ))*2.0 );
 		}
 	</script>
@@ -79,13 +79,15 @@
 		var windowHalfY = window.innerHeight / 2;
 
 		// for function initiateParticleSystem
-		var numParticles, positions, scales, timeOffset, varianceOffset;
+		var numParticles, positions, scales, timeOffset, varianceOffset, speedOffset, countOffset;
 
 		var renderParticles = false;
 		var renderSpeed = 0.5;
 
 		var particleTimeOffsets = [];
 		var particleVarianceOffsets = [];
+		var particleSpeedOffsets = [];
+		var particleCountOffsets = [];
 
 		function render() {
 
@@ -101,10 +103,13 @@
 					timeOffset = particleTimeOffsets[ j ];
 					varianceOffset = particleVarianceOffsets[ j ];
 
-					positions[ i  ] = ( Math.cos( (5000+count)*varianceOffset/6 ) * 1400 / timeOffset)
-					positions[ i + 2] = ( Math.sin( (5000+count)*varianceOffset/6 ) * 1400 / timeOffset)
-					positions[ i + 1 ] = ( Math.sin( (5000+count)*varianceOffset ) * 150 * timeOffset)
-					// positions[ i + 2 ] = ( Math.sin( count*varianceOffset*0.5 ) * 1000 * timeOffset)
+					speedOffset = particleSpeedOffsets[ j ];
+					particleCountOffsets[ j ] += speedOffset;
+					countOffset = particleCountOffsets[ j ];
+
+					positions[ i  ] = ( Math.cos( (countOffset+count)*varianceOffset/6 ) * 1400 / timeOffset)
+					positions[ i + 2] = ( Math.sin( (countOffset+count)*varianceOffset/6 ) * 1400 / timeOffset)
+					positions[ i + 1 ] = ( Math.sin( (0+count)*varianceOffset ) * 150 * timeOffset)
 
 					scales[ j ] = ( Math.sin( ( timeOffset*30 + ix + count ) * 0.3 ) + 1 ) * 8 +
 									( Math.sin( ( timeOffset*30 + iy + count ) * 0.5 ) + 1 ) * 8;
@@ -147,6 +152,9 @@
 
 					particleTimeOffsets[ j ] = Math.random();
 					particleVarianceOffsets[ j ] = Math.random();
+
+					particleSpeedOffsets[ j ] = Math.random()/10;
+					particleCountOffsets[ j ] = 0;
 
 					i += 3;
 					j ++;
@@ -350,7 +358,7 @@
 
 			}
 			if(frameCount>100 && renderSpeed>0.01) {
-				renderSpeed *= 0.96;
+				renderSpeed *= 0.98;
 			}
 		}
 
@@ -377,12 +385,12 @@
 			// Setup scene
 			scene = new THREE.Scene();
 
-			camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 35000);
+			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 35000);
 			camera.position.set(1000, 100, 200);
 
 			camera.rotation.x = Math.PI;
 
-			spectatorCamera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 35000);
+			spectatorCamera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 1, 35000);
 			spectatorCamera.position.set(660, 800, 300);
 
 			mainCamera = camera;
@@ -391,12 +399,12 @@
 			// scene.fog = new THREE.Fog(0xcce0ff, 2.00, 2000);
 			// lights
 
-			atmosphericLight = new THREE.HemisphereLight(0x394552, 0xa39b84, 1);
+			// atmosphericLight = new THREE.HemisphereLight(0x394552, 0xa39b84, 1);
 
-			scene.add(atmosphericLight);
+			// scene.add(atmosphericLight);
 
-			light = new THREE.DirectionalLight(0xffffff, 0.7);
-			light.position.set(3000, 3000, 1000);
+			light = new THREE.DirectionalLight(0xffffff, 1);
+			light.position.set(3000,3000, 1000);
 
 			scene.add(light.target);
 
@@ -433,17 +441,17 @@
 			controls.autoRotateSpeed = -0.7;
 
 			spectatorControls = new OrbitControls(spectatorCamera, renderer.domElement);
-			spectatorControls.maxPolarAngle = Math.PI * 0.35;
-			spectatorControls.minPolarAngle = Math.PI * 0.15;
-			spectatorControls.minDistance = 300;
-			spectatorControls.maxDistance = 600;
+			// spectatorControls.maxPolarAngle = Math.PI * 0.35;
+			// spectatorControls.minPolarAngle = Math.PI * 0.15;
+			spectatorControls.minDistance = 1000;
+			spectatorControls.maxDistance = 2000;
 			spectatorControls.enableKeys = false;
 			spectatorControls.enabled = false;
 			spectatorControls.enablePan = true;
-			spectatorControls.autoRotate = true;
+			// spectatorControls.autoRotate = true;
 			spectatorControls.enableDamping = true;
 			spectatorControls.dampingFactor = 0.15;
-			spectatorControls.autoRotateSpeed = 0.2;
+			// spectatorControls.autoRotateSpeed = 0.2;
 
 			stats = new Stats();
 			container.appendChild( stats.dom );
@@ -451,8 +459,21 @@
 			initiateParticleSystem();
 
 			// planet
-			planetObj = new THREE.Mesh(new THREE.SphereBufferGeometry(500, 32, 32), new THREE.MeshPhysicalMaterial({map:planet, bumpMap:planet, bumpScale: 52}));
-		  	scene.add(planetObj);
+			planet.anisotropy = 16;
+			planetObj = new THREE.Mesh(
+				new THREE.SphereBufferGeometry(800, 64, 64),
+				new THREE.MeshPhysicalMaterial({
+					map:planet,
+					bumpMap:planet,
+					bumpScale: 42,
+					roughness: 1.0,
+					reflectivity: 1.0,
+					emissive: new THREE.Color(0.6,0,0)
+				})
+			);
+			scene.add(planetObj);
+
+			new TWEEN.Tween(planetObj.material.emissive).to({r: 0,g: 0,b: 0}, 5000).start();
 
 			setupEventHandlers();
 
@@ -465,6 +486,20 @@
 			window.addEventListener('keydown', handleKeyDown, false);
 			window.addEventListener('keyup', handleKeyUp, false);
 			window.addEventListener( 'resize', onWindowResize, false );
+
+			$(".pause-camera-btn").on("click", ()=>{
+				controls.autoRotate = !controls.autoRotate;
+				$(".pause-camera-btn").html($(".pause-camera-btn").html()=="Pause camera" ? "Start camera" : "Pause camera");
+			});
+
+			$(".warp-btn").on("click", ()=>{
+				count += 5000;
+			});
+
+			$(".pause-particles-btn").on("click", ()=>{
+				renderParticles = !renderParticles;
+				$(".pause-particles-btn").html($(".pause-particles-btn").html()=="Pause particles" ? "Start particles" : "Pause particles");
+			});
 
 		}
 
@@ -575,7 +610,7 @@
 
         function initiateSockets() {
 
-            Socket = io.connect('http://localhost:4000/web');
+            Socket = io.connect('http://localhost:3500/web');
 
             socketListenersOn();
 
@@ -636,8 +671,9 @@
                     <i class="fas fa-meteor text-warning fa-fw"></i>
                 </button>
                 <div class="dropdown-menu rounded-0 m-0" aria-labelledby="dropdownMenu2">
-                    <button class="dropdown-item restart-daemon-btn" type="button">Restart daemon</button>
-                    <button class="dropdown-item utility-btn" type="button">Uitility action</button>
+                    <button class="dropdown-item pause-particles-btn" type="button">Pause particles</button>
+                    <button class="dropdown-item warp-btn" type="button">Time warp</button>
+                    <button class="dropdown-item pause-camera-btn" type="button">Pause camera</button>
                 </div>
             </div>
         </div>
