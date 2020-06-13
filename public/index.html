@@ -175,7 +175,7 @@
 					positions[ i + 2] =  ( Math.sin( (countOffset+count)*varianceOffset*6 ) * particleControls.xzSpread.now / timeOffset*particleControls.innerRing.now)
 					positions[ i + 1 ] = ( Math.sin( (10000+count)*varianceOffset/6 ) * particleControls.ySpread.now / timeOffset)
 
-					scales[ j ] = ( Math.sin( ( varianceOffset*300 + count ) * 0.3 ) + 1 ) * 10 +
+					scales[ j ] = ((Math.abs(positions[ i + 1 ]))/1000)+( Math.sin( ( varianceOffset*300 + count ) * 0.3 ) + 1 ) * 10 +
 									( Math.cos( ( varianceOffset*300 + count ) * 0.5 ) + 1 ) * 10;
 
 					i += 3;
