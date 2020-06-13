@@ -486,6 +486,8 @@
 			if(frameCount>1000) stats.update();
 			render();
 			planetObj.rotation.y -= planetControls.rotationSpeed.now;
+			// particles.rotation.x -= planetControls.rotationSpeed.now*1.3;
+			particles.rotation.z += planetControls.rotationSpeed.now*1.6;
 			// console.log(renderSpeed.speed)
 			if(frameCount==100) {
 				startParticleAnimation();
