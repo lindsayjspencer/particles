@@ -197,7 +197,7 @@
 			renderParticles = true;
 			// controls.autoRotateSpeed = -1;
 			zoomOut = new TWEEN.Tween(controls).to({minDistance:22000,maxDistance:22000}, 8000).easing(TWEEN.Easing.Quadratic.Out);
-			slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:5}, 12000).delay(1000);
+			slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:5}, 8000).delay(1000);
 			tiltUp = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.45,minPolarAngle:Math.PI*0.45}, 6000).delay(700).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
 						controls.minPolarAngle = Math.PI*0.45;
 						controls.maxPolarAngle = Math.PI*0.45;
@@ -213,6 +213,8 @@
 
 			particleControls.uniforms.expandRingPos.chain(particleControls.uniforms.retractRingPos);
 			particleControls.uniforms.retractRingPos.chain(particleControls.uniforms.expandRingPos);
+			particleControls.ySpread.expandHighFast.chain(particleControls.ySpread.retractHighFast);
+			particleControls.ySpread.retractHighFast.chain(particleControls.ySpread.expand);
 
 			particleControls.xzSpread.expand.start();
 			particleControls.ySpread.expand.start();
@@ -228,10 +230,12 @@
 			particleControls.xzSpread.expandFast = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.max}, 3000).easing(TWEEN.Easing.Quadratic.Out);
 			particleControls.xzSpread.retractFast = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.min}, 900).easing(TWEEN.Easing.Quadratic.In);
 
-			particleControls.ySpread.expand = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max}, 8000).easing(TWEEN.Easing.Quadratic.Out);
+			particleControls.ySpread.expand = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
 			particleControls.ySpread.retract = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
 			particleControls.ySpread.expandFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max}, 3000).easing(TWEEN.Easing.Quadratic.Out);
 			particleControls.ySpread.retractFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.min}, 900).easing(TWEEN.Easing.Quadratic.In);
+			particleControls.ySpread.expandHighFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max*2}, 1000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.ySpread.retractHighFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.min}, 6000).easing(TWEEN.Easing.Quadratic.InOut);
 
 			particleControls.speed.expand = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.max}, 16000).easing(TWEEN.Easing.Quadratic.InOut);
 			particleControls.speed.retract = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
@@ -246,6 +250,9 @@
 
 			particleControls.uniforms.expandRingPos = new TWEEN.Tween(uniforms.ringPos).to({value:10000.0}, 16000).easing(TWEEN.Easing.Quadratic.InOut);
 			particleControls.uniforms.retractRingPos = new TWEEN.Tween(uniforms.ringPos).to({value:-1000.0}, 1000).easing(TWEEN.Easing.Quadratic.InOut);
+
+			controls.expandRotateFast = new TWEEN.Tween(controls).to({autoRotateSpeed:5}, 1000).easing(TWEEN.Easing.Quadratic.InOut);
+			controls.retractRotateFast = new TWEEN.Tween(controls).to({autoRotateSpeed:0.05}, 400).easing(TWEEN.Easing.Quadratic.InOut);
 
 		}
 
@@ -476,23 +483,25 @@
 
 			controls.update();
 			spectatorControls.update();
-			if(frameCount>1500) stats.update();
+			if(frameCount>1000) stats.update();
 			render();
 			planetObj.rotation.y -= planetControls.rotationSpeed.now;
 			// console.log(renderSpeed.speed)
 			if(frameCount==100) {
-				setupParticleAnimations();
 				startParticleAnimation();
 			}
-			if(frameCount==300) {
+			if(frameCount==200) {
 				particleControls.uniforms.expandRingPos.start();
 			}
-			if(frameCount==1500) {
+			if(frameCount==1000) {
 				tiltDown.start();
 				setupEventHandlers();
 				stats = new Stats();
 				container.appendChild( stats.dom );
 				$("body").addClass("initiate");
+			}
+			if(frameCount == 1300) {
+				particleControls.ySpread.expandHighFast.start();
 			}
 
 			TWEEN.update();
@@ -616,6 +625,7 @@
 			);
 			scene.add(planetObj);
 
+			setupParticleAnimations();
 
 			animate();
 
@@ -730,12 +740,12 @@
 					if(!renderParticles) {
 						tiltUp.pause();
 						tiltDown.pause();
-						controls.autoRotateSpeed = 0.05;
+						controls.retractRotateFast.start();
 						particleControls.speed.retractFast.start();
 					} else {
 						tiltUp.resume();
 						tiltDown.resume();
-						controls.autoRotateSpeed = 5;
+						controls.expandRotateFast.start();
 						particleControls.speed.expandFast.start();
 					}
 					moveDirection.up = 0
