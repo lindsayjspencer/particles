@@ -476,7 +476,7 @@
 
 			controls.update();
 			spectatorControls.update();
-			stats.update();
+			if(frameCount>1500) stats.update();
 			render();
 			planetObj.rotation.y -= planetControls.rotationSpeed.now;
 			// console.log(renderSpeed.speed)
