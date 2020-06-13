@@ -497,7 +497,11 @@
 
 			TWEEN.update();
 
-			if(renderParticles) frameCount++;
+			if(frameCount<100) {
+				frameCount++;
+			} else {
+				if(renderParticles) frameCount++;
+			}
 
 			renderer.render(scene, mainCamera);
 			requestAnimationFrame(animate);
