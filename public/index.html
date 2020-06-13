@@ -473,7 +473,6 @@
 			if (pauseGame) {
 				return;
 			}
-				frameCount++;
 
 			controls.update();
 			spectatorControls.update();
@@ -490,9 +489,15 @@
 			}
 			if(frameCount==1500) {
 				tiltDown.start();
+				setupEventHandlers();
+				stats = new Stats();
+				container.appendChild( stats.dom );
+				$("body").addClass("initiate");
 			}
 
 			TWEEN.update();
+
+			if(renderParticles) frameCount++;
 
 			renderer.render(scene, mainCamera);
 			requestAnimationFrame(animate);
@@ -501,7 +506,6 @@
 		function init() {
 
 			setTimeout(function() {
-				$("body").addClass("initiate");
 				$(".loading-msg").addClass("hide");
 				setTimeout(function() {
 					$(".loading-msg").remove();
@@ -590,9 +594,6 @@
 			spectatorControls.dampingFactor = 0.15;
 			spectatorControls.autoRotateSpeed = -1;
 
-			stats = new Stats();
-			container.appendChild( stats.dom );
-
 			initiateParticleSystem();
 
 			// planet
@@ -611,7 +612,6 @@
 			);
 			scene.add(planetObj);
 
-			setupEventHandlers();
 
 			animate();
 
@@ -621,7 +621,6 @@
 
 			window.addEventListener('keydown', handleKeyDown, false);
 			window.addEventListener('keyup', handleKeyUp, false);
-			window.addEventListener( 'resize', onWindowResize, false );
 
 			$(".pause-camera-btn").on("click", ()=>{
 				controls.autoRotate = !controls.autoRotate;
@@ -638,6 +637,8 @@
 			});
 
 		}
+
+		window.addEventListener( 'resize', onWindowResize, false );
 
 		function onWindowResize() {
 
