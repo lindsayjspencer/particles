@@ -59,17 +59,24 @@
 
 	<script type="x-shader/x-vertex" id="vertexshader">
 		attribute float scale;
+		varying vec3 vColor;
 		void main() {
 			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
 			gl_PointSize = scale/8.0;
 			gl_Position = projectionMatrix * mvPosition;
+			vColor = position;
 		}
 	</script>
 
 	<script type="x-shader/x-fragment" id="fragmentshader">
+		varying vec3 vColor;
+		uniform float time;
+		uniform float ringPos;
 		void main() {
-			// if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
-			gl_FragColor = vec4( 1.0, 0.43, 0.02, 1.0-(length( vec2( 0.5, 0.5 ) - gl_PointCoord ))*2.0 );
+			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.5 ) discard;
+			// gl_FragColor = vec4( 1.0, 0.43, 0.02, 1.0-(length( vec2( 0.5, 0.5 ) - gl_PointCoord ))*2.0 );
+			gl_FragColor = vec4( 1.0, (abs(ringPos-vColor.x)+abs(ringPos-vColor.y))/25000.0, 0.02, 1.0-(length( vec2( 0.5, 0.5 ) - gl_PointCoord ))*2.0 );
+			// time++;
 		}
 	</script>
 
@@ -78,7 +85,7 @@
 
 		var SEPARATION = 1, AMOUNTX = 250, AMOUNTY = 250;
 
-		var particles, count = 0;
+		var particles, count = 0, uniforms;
 
 		var mouseX = 0, mouseY = 0;
 
@@ -86,16 +93,62 @@
 		var windowHalfY = window.innerHeight / 2;
 
 		// for function initiateParticleSystem
-		var planetObjRotationSpeed = 0.004;
 		var numParticles, positions, scales, timeOffset, varianceOffset, speedOffset, countOffset;
 
 		var renderParticles = false;
-		var renderSpeed = {speed:0.05};
+
+		var planetControls = {
+			rotationSpeed: {
+				max: 0.04,
+				min: 0.001,
+				now: 0.001,
+				toMax: false,
+				toMin: false,
+				quadratic: 1.009
+			}
+		}
+
+		var particleControls = {
+			xzSpread: {
+				max: 2000,
+				min: 500,
+				now: 10,
+				toMax: false,
+				toMin: false,
+				quadratic: 1.003
+			},
+			ySpread: {
+				max: 600,
+				min: 120,
+				now: 1,
+				toMax: false,
+				toMin: false,
+				quadratic: 1.008
+			},
+			speed: {
+				max: 0.005,
+				min: 0.001,
+				now: 0.00001,
+				toMax: false,
+				toMin: false,
+				quadratic: 1.009
+			},
+			innerRing: {
+				max: 4.0,
+				min: 1.5,
+				now: 7.0,
+			},
+			uniforms: {}
+		}
+
+
 
 		var particleTimeOffsets = [];
 		var particleVarianceOffsets = [];
 		var particleSpeedOffsets = [];
 		var particleCountOffsets = [];
+
+		var ySpread = 1;
 
 		function render() {
 
@@ -112,15 +165,15 @@
 					varianceOffset = particleVarianceOffsets[ j ];
 
 					speedOffset = particleSpeedOffsets[ j ];
-					countOffset = particleCountOffsets[ j ];
+					countOffset = particleCountOffsets[ j ]+3000;
 
-					if(renderSpeed.speed>0) {
-						particleCountOffsets[ j ] += speedOffset;
-					}
+					// if(particleControls.speed.now>0.001) {
+						particleCountOffsets[ j ] += speedOffset*(particleControls.speed.now/particleControls.speed.max);
+					// }
 
-					positions[ i  ] = ( Math.cos( (countOffset+count)*varianceOffset*6 ) * 1000 / timeOffset)
-					positions[ i + 2] = ( Math.sin( (countOffset+count)*varianceOffset*6 ) * 1000 / timeOffset)
-					positions[ i + 1 ] = ( Math.sin( (10000+count)*varianceOffset/6 ) * 150 / timeOffset)
+					positions[ i  ] = ( Math.cos( (countOffset+count)*varianceOffset*6 ) * particleControls.xzSpread.now / timeOffset*particleControls.innerRing.now)
+					positions[ i + 2] =  ( Math.sin( (countOffset+count)*varianceOffset*6 ) * particleControls.xzSpread.now / timeOffset*particleControls.innerRing.now)
+					positions[ i + 1 ] = ( Math.sin( (10000+count)*varianceOffset/6 ) * particleControls.ySpread.now / timeOffset)
 
 					scales[ j ] = ( Math.sin( ( varianceOffset*300 + count ) * 0.3 ) + 1 ) * 10 +
 									( Math.cos( ( varianceOffset*300 + count ) * 0.5 ) + 1 ) * 10;
@@ -135,7 +188,64 @@
 			particles.geometry.attributes.position.needsUpdate = true;
 			particles.geometry.attributes.scale.needsUpdate = true;
 
-			count += renderSpeed.speed;
+			count += particleControls.speed.now;
+		      uniforms.time.value = count;
+
+		}
+
+		function startParticleAnimation() {
+			renderParticles = true;
+			// controls.autoRotateSpeed = -1;
+			zoomOut = new TWEEN.Tween(controls).to({minDistance:22000,maxDistance:22000}, 8000).easing(TWEEN.Easing.Quadratic.Out);
+			slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:5}, 12000).delay(1000);
+			tiltUp = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.45,minPolarAngle:Math.PI*0.45}, 6000).delay(700).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+						controls.minPolarAngle = Math.PI*0.45;
+						controls.maxPolarAngle = Math.PI*0.45;
+					});
+			tiltDown = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.55,minPolarAngle:Math.PI*0.55}, 6000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+						controls.minPolarAngle = Math.PI*0.55;
+						controls.maxPolarAngle = Math.PI*0.55;
+					});;
+			zoomOut.start();
+			tiltUp.chain(tiltDown);
+			tiltDown.chain(tiltUp);
+			slowDown.start();
+
+			particleControls.uniforms.expandRingPos.chain(particleControls.uniforms.retractRingPos);
+			particleControls.uniforms.retractRingPos.chain(particleControls.uniforms.expandRingPos);
+
+			particleControls.xzSpread.expand.start();
+			particleControls.ySpread.expand.start();
+
+			particleControls.speed.expand.start();
+			particleControls.innerRing.retract.start();
+		}
+
+		function setupParticleAnimations() {
+
+			particleControls.xzSpread.expand = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.max}, 8000).easing(TWEEN.Easing.Quadratic.Out);
+			particleControls.xzSpread.retract = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.xzSpread.expandFast = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.max}, 3000).easing(TWEEN.Easing.Quadratic.Out);
+			particleControls.xzSpread.retractFast = new TWEEN.Tween(particleControls.xzSpread).to({now:particleControls.xzSpread.min}, 900).easing(TWEEN.Easing.Quadratic.In);
+
+			particleControls.ySpread.expand = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max}, 8000).easing(TWEEN.Easing.Quadratic.Out);
+			particleControls.ySpread.retract = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.ySpread.expandFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.max}, 3000).easing(TWEEN.Easing.Quadratic.Out);
+			particleControls.ySpread.retractFast = new TWEEN.Tween(particleControls.ySpread).to({now:particleControls.ySpread.min}, 900).easing(TWEEN.Easing.Quadratic.In);
+
+			particleControls.speed.expand = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.max}, 16000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.speed.retract = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.speed.expandFast = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.max}, 1000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.speed.retractFast = new TWEEN.Tween(particleControls.speed).to({now:particleControls.speed.min*0.5}, 400).easing(TWEEN.Easing.Quadratic.InOut);
+
+
+			particleControls.innerRing.expand = new TWEEN.Tween(particleControls.innerRing).to({now:particleControls.innerRing.max}, 16000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.innerRing.retract = new TWEEN.Tween(particleControls.innerRing).to({now:particleControls.innerRing.min}, 8000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.innerRing.expandFast = new TWEEN.Tween(particleControls.innerRing).to({now:particleControls.innerRing.max}, 4000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.innerRing.retractFast = new TWEEN.Tween(particleControls.innerRing).to({now:particleControls.innerRing.min*0.5}, 400).easing(TWEEN.Easing.Quadratic.InOut);
+
+			particleControls.uniforms.expandRingPos = new TWEEN.Tween(uniforms.ringPos).to({value:10000.0}, 16000).easing(TWEEN.Easing.Quadratic.InOut);
+			particleControls.uniforms.retractRingPos = new TWEEN.Tween(uniforms.ringPos).to({value:-1000.0}, 1000).easing(TWEEN.Easing.Quadratic.InOut);
 
 		}
 
@@ -164,8 +274,12 @@
 					particleTimeOffsets[ j ] = 0.1+Math.random();
 					particleVarianceOffsets[ j ] = 0.2+Math.random();
 
-					particleSpeedOffsets[ j ] = 0.01+Math.random()/100;
+					particleSpeedOffsets[ j ] = 0.001+Math.random()/100;
 					particleCountOffsets[ j ] = 0;
+
+					colors[ i ] = particleTimeOffsets[ j ];
+					colors[ i + 1 ] = particleVarianceOffsets[ j ];
+					colors[ i + 2 ] = particleSpeedOffsets[ j ];
 
 					i += 3;
 					j ++;
@@ -174,19 +288,22 @@
 
 			}
 
-			console.log(positions);
+			// console.log(positions);
 
 			var geometry = new THREE.BufferGeometry();
 			geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
 			geometry.setAttribute( 'scale', new THREE.BufferAttribute( scales, 1 ) );
 			geometry.setAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
 
+		      uniforms = {
+				ringPos: { type: "f", value: 0.0 },
+		        time: { type: "f", value: 1.0 },
+		      };
+
 			var material = new THREE.ShaderMaterial( {
 
-				uniforms: {
-					// color: { value: new THREE.Color( 0xffffff ) },
-					time: { value: 1.0 },
-				},
+				vertexColors: THREE.VertexColors,
+				uniforms: uniforms,
 				transparent: true,
 				side: THREE.DoubleSide,
 				blending: THREE.AdditiveBlending,
@@ -231,8 +348,8 @@
 
 		function join_screen_init() {
 			$(".init-screen-options").toggleClass("hide mt-3");
-			// $(".init-btn").on("click", function() {
-			setTimeout(()=>{
+			$(".init-btn").on("click", function() {
+			// setTimeout(()=>{
 				$(".init-screen").addClass("hide");
 				setTimeout(function() {
 					$(".loading-msg").removeClass("init");
@@ -242,8 +359,8 @@
 					// initiateSockets();
 					loadAssets();
 				}, 750);
-			// })
-			}, 1000);
+			});
+			// }, 1000);
 		}
 
 		var manager = new THREE.LoadingManager();
@@ -279,11 +396,14 @@
 
 		}
 
-		var fontLoader = new THREE.FontLoader(manager);
-		var textureLoader = new THREE.TextureLoader(manager);
+		const fontLoader = new THREE.FontLoader(manager);
+		const textureLoader = new THREE.TextureLoader(manager);
+		const skyboxLoader = new THREE.CubeTextureLoader(manager);
 
 		var defaultFont;
 		var gridTexture;
+
+		var backgroundTexture;
 
 		var chalkboardTextures = [],
 			fabrics = [],
@@ -332,70 +452,53 @@
 			// stones.push(textureLoader.load('/img/textures/stones0-min.png'));
 			// woodTextures.push(textureLoader.load('/img/textures/rsz_wood1-min.jpg'));
 			// woodTextures.push(textureLoader.load('/img/textures/rsz_wood2-min.jpg'));
+			backgroundTexture = skyboxLoader.load([
+				'img/textures/skybox/space-01/pos-x.png',
+				'img/textures/skybox/space-01/neg-x.png',
+				'img/textures/skybox/space-01/pos-y.png',
+				'img/textures/skybox/space-01/neg-y.png',
+				'img/textures/skybox/space-01/pos-z.png',
+				'img/textures/skybox/space-01/neg-z.png',
+			]);
 			planet = textureLoader.load(`https://solartextures.b-cdn.net/2k_mars.jpg`);
 
 		}
 
-
-
 		// Kick-off renderer
 		var frameCount = 0;
-		var slowDown, tiltUp, tiltDown, zoomOut;
+		var slowDown, slowDown2, tiltUp, tiltDown, zoomOut;
 
 		function animate() {
-			frameCount++;
 
 			if (pauseGame) {
 				return;
 			}
-
-
-			let deltaTime = clock.getDelta();
-
-			TWEEN.update();
+				frameCount++;
 
 			controls.update();
 			spectatorControls.update();
 			stats.update();
-			if(renderParticles) render();
+			render();
+			planetObj.rotation.y -= planetControls.rotationSpeed.now;
+			// console.log(renderSpeed.speed)
+			if(frameCount==100) {
+				setupParticleAnimations();
+				startParticleAnimation();
+			}
+			if(frameCount==300) {
+				particleControls.uniforms.expandRingPos.start();
+			}
+			if(frameCount==1500) {
+				tiltDown.start();
+			}
+
+			TWEEN.update();
 
 			renderer.render(scene, mainCamera);
 			requestAnimationFrame(animate);
-			planetObj.rotation.y -= planetObjRotationSpeed;
-			console.log(renderSpeed.speed)
-			if(frameCount==100) {
-				renderParticles = true;
-				planetObjRotationSpeed = 0.08
-				controls.autoRotateSpeed = -1;
-				zoomOut = new TWEEN.Tween(controls).to({minDistance:15000,maxDistance:15000}, 9000).easing(TWEEN.Easing.Quadratic.InOut).delay(300);
-				slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:20}, 3000);
-				tiltUp = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.45,minPolarAngle:Math.PI*0.45}, 3000).delay(700).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
-							controls.minPolarAngle = Math.PI*0.45;
-							controls.maxPolarAngle = Math.PI*0.45;
-						});
-				tiltDown = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.55,minPolarAngle:Math.PI*0.55}, 3000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
-							controls.minPolarAngle = Math.PI*0.55;
-							controls.maxPolarAngle = Math.PI*0.55;
-						});;
-				zoomOut.start();
-				tiltUp.chain(tiltDown);
-				tiltDown.chain(tiltUp);
-				tiltDown.start();
-				slowDown.start();
-			}
-			if (frameCount % 9 == 0) {
-
-			}
-			// socket.io
-			if (frameCount % 5 == 0) {
-
-			}
-			if(frameCount>118 && renderSpeed.speed>0.01) {
-				renderSpeed.speed *= 0.98;
-			}
 		}
 
-		async function init() {
+		function init() {
 
 			setTimeout(function() {
 				$("body").addClass("initiate");
@@ -418,7 +521,7 @@
 			// Setup scene
 			scene = new THREE.Scene();
 
-			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 35000);
+			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 100000);
 			camera.position.set(1000, -110, 200);
 
 			camera.rotation.x = Math.PI;
@@ -428,7 +531,7 @@
 
 			mainCamera = camera;
 
-			scene.background = new THREE.Color(0x000000);
+			scene.background = backgroundTexture;
 			// scene.fog = new THREE.Fog(0xcce0ff, 2.00, 2000);
 			// lights
 
@@ -471,7 +574,7 @@
 			controls.autoRotate = true;
 			controls.enableDamping = false;
 			controls.dampingFactor = 0.15;
-			controls.autoRotateSpeed = 15;
+			controls.autoRotateSpeed = 0;
 
 			spectatorControls = new OrbitControls(spectatorCamera, renderer.domElement);
 			// spectatorControls.maxPolarAngle = Math.PI * 0.35;
@@ -576,18 +679,6 @@
 					break;
 
 				case 32: //SPACEBAR: Up
-					planetObjRotationSpeed = planetObjRotationSpeed==0.002 ? 0.08 : 0.002;
-					if(planetObjRotationSpeed!=0.08) {
-						tiltUp.pause();
-						tiltDown.pause();
-						controls.autoRotateSpeed = 0.2;
-						renderSpeed.speed = -0.0001;
-					} else {
-						tiltDown.resume();
-						tiltUp.resume();
-						controls.autoRotateSpeed = 20;
-						renderSpeed.speed = 0.01;
-					}
 					moveDirection.up = 1
 					break;
 
@@ -629,6 +720,19 @@
 					break;
 
 				case 32: //SPACEBAR: Up
+					renderParticles = !renderParticles;
+					// planetControls.rotationSpeed = planetControls.rotationSpeed==0.002 ? 0.04 : 0.002;
+					if(!renderParticles) {
+						tiltUp.pause();
+						tiltDown.pause();
+						controls.autoRotateSpeed = 0.05;
+						particleControls.speed.retractFast.start();
+					} else {
+						tiltUp.resume();
+						tiltDown.resume();
+						controls.autoRotateSpeed = 5;
+						particleControls.speed.expandFast.start();
+					}
 					moveDirection.up = 0
 					break;
 
