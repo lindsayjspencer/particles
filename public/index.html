@@ -120,7 +120,7 @@
 			ySpread: {
 				max: 600,
 				min: 120,
-				now: 1,
+				now: 120,
 				toMax: false,
 				toMin: false,
 				quadratic: 1.008
@@ -199,13 +199,13 @@
 			zoomOut = new TWEEN.Tween(controls).to({minDistance:22000,maxDistance:22000}, 8000).easing(TWEEN.Easing.Quadratic.Out);
 			slowDown = new TWEEN.Tween(controls).to({autoRotateSpeed:5}, 8000).delay(1000);
 			tiltUp = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.45,minPolarAngle:Math.PI*0.45}, 6000).delay(700).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
-						controls.minPolarAngle = Math.PI*0.45;
-						controls.maxPolarAngle = Math.PI*0.45;
-					});
+				controls.minPolarAngle = Math.PI*0.45;
+				controls.maxPolarAngle = Math.PI*0.45;
+			});
 			tiltDown = new TWEEN.Tween(controls).to({maxPolarAngle:Math.PI*0.55,minPolarAngle:Math.PI*0.55}, 6000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
-						controls.minPolarAngle = Math.PI*0.55;
-						controls.maxPolarAngle = Math.PI*0.55;
-					});;
+				controls.minPolarAngle = Math.PI*0.55;
+				controls.maxPolarAngle = Math.PI*0.55;
+			});
 			zoomOut.start();
 			tiltUp.chain(tiltDown);
 			tiltDown.chain(tiltUp);
@@ -481,13 +481,15 @@
 				return;
 			}
 
+			TWEEN.update();
+
 			controls.update();
 			spectatorControls.update();
 			if(frameCount>1000) stats.update();
 			render();
 			planetObj.rotation.y -= planetControls.rotationSpeed.now;
 			// particles.rotation.x -= planetControls.rotationSpeed.now*1.3;
-			particles.rotation.z += planetControls.rotationSpeed.now*1.6;
+			particles.rotation.z += particleControls.speed.now*Math.sin(frameCount/100);
 			// console.log(renderSpeed.speed)
 			if(frameCount==100) {
 				startParticleAnimation();
@@ -501,12 +503,22 @@
 				stats = new Stats();
 				container.appendChild( stats.dom );
 				$("body").addClass("initiate");
+
+				controls.zoomInSmall = new TWEEN.Tween(controls).to({minDistance:17000,maxDistance:17000}, 6000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+					this.minDistance = 28000;
+					this.maxDistance = 28000;
+				});
+				controls.zoomOutSmall = new TWEEN.Tween(controls).to({minDistance:28000,maxDistance:28000}, 6000).easing(TWEEN.Easing.Quadratic.InOut).onComplete(function () {
+					this.minDistance = 17000;
+					this.maxDistance = 17000;
+				});
+				controls.zoomOutSmall.chain(controls.zoomInSmall);
+				controls.zoomInSmall.chain(controls.zoomOutSmall);
+				controls.zoomOutSmall.start();
 			}
 			if(frameCount == 1300) {
 				particleControls.ySpread.expandHighFast.start();
 			}
-
-			TWEEN.update();
 
 			if(frameCount<100) {
 				frameCount++;
