@@ -17,6 +17,10 @@ class ExpressSetup {
             res.sendFile( path.join(__dirname, '../public', '/index.html') );
         });
 
+        this.app.get('/planet', function(req, res) {
+            res.sendFile( path.join(__dirname, '../public', '/planet.html') );
+        });
+
         this.app.get('/test', function(req, res) {
             res.sendFile( path.join(__dirname, '../public', '/test.html') );
         });
