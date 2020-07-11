@@ -61,6 +61,7 @@
 		attribute float scale;
 		attribute float speed;
 		attribute float mass;
+		attribute float seed;
 		uniform float time;
 		varying vec3 passColor;
 		void main() {
@@ -83,7 +84,7 @@
 	<script type="module">
 
 
-		var SEPARATION = 1, AMOUNTX = 250, AMOUNTY = 250;
+		var SEPARATION = 1, AMOUNTX = 100, AMOUNTY = 100;
 
 		var particles, count = 0, uniforms;
 
@@ -159,6 +160,7 @@
 			var mass = particles.geometry.attributes.mass.array;
 			var speed = particles.geometry.attributes.speed.array;
 			var color = particles.geometry.attributes.color.array;
+			var seed = particles.geometry.attributes.seed.array;
 
 			// console.log(positions);
 
@@ -168,19 +170,21 @@
 
 				for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
 
-					color[ i  ] += Math.cos(i+count/40)/100;
-					color[ i + 2] += Math.sin(i+count/100)/100; 
-					color[ i + 1 ] += Math.sin(i+count/10)/100;
+
+
+					color[ i  ] += Math.cos(seed[j]*400+count/40)/100;
+					color[ i + 2] += Math.sin(seed[j]*5000+count/100)/100; 
+					color[ i + 1 ] += Math.sin(seed[j]*100+count/10)/100;
 
 					positions[ i  ] += speed[ i ];
-					positions[ i + 2] += speed[ i + 1 ]; 
-					positions[ i + 1 ] += speed[ i + 2 ];
+					positions[ i + 1] += speed[ i + 1 ];
+					positions[ i + 2 ] += speed[ i + 2 ];
 
-					speed[ i  ] = Math.sin(i+count/1000);
-					speed[ i + 2] = Math.sin(i+count/300); 
-					speed[ i + 1 ] = Math.sin(i+count/800);
+					speed[ i ] = speed[ i ]; // unchanged
+					speed[ i + 2] = speed[ i + 2];
+					speed[ i + 1 ] = speed[ i + 1 ];
 
-					scales[ j ] += Math.cos(i+count/40)/10;
+					scales[ j ] += Math.cos(seed[j]+(count/40))/10;
 					mass[ j ] = 1;
 
 					i += 3;
@@ -195,12 +199,18 @@
 			particles.geometry.attributes.color.needsUpdate = true;
 			particles.geometry.attributes.speed.needsUpdate = true;
 			particles.geometry.attributes.mass.needsUpdate = true;
+			particles.geometry.attributes.seed.needsUpdate = true;
 
-			count += 1;
+			count += 5;
 			uniforms.time.value = count;
 			
 			console.log(count);
 
+		}
+
+		function randomQuad(num) {
+			let arc = Math.random()*num;
+			return Math.sqrt(arc);
 		}
 
 		function initiateParticleSystem() {
@@ -212,6 +222,7 @@
 			var positions = new Float32Array( numParticles * 3 );
 			var scales = new Float32Array( numParticles );
 			var mass = new Float32Array( numParticles );
+			var seeds = new Float32Array( numParticles );
 			var colors = new Float32Array( numParticles * 3 );
 			var speed = new Float32Array( numParticles * 3 );
 
@@ -221,16 +232,17 @@
 
 				for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
 
-					positions[ i ] = Math.random()*2000; // x
-					positions[ i + 1 ] = Math.random()*2000; // y
-					positions[ i + 2 ] = Math.random()*2000; // z
+					positions[ i ] = randomQuad(5000)*20; // x
+					positions[ i + 1 ] = randomQuad(5000)*20; // y
+					positions[ i + 2 ] = randomQuad(5000)*20; // z
 
-					scales[ j ] = 2;
+					scales[ j ] = 5;
 					mass[ j ] = 1;
+					seeds[ j ] = Math.floor(Math.random()*10000);
 
-					speed[ i ] = 0;
-					speed[ i + 1 ] = 0;
-					speed[ i + 2 ] = 0;
+					speed[ i ] = Math.random()*5-5;
+					speed[ i + 1 ] = Math.random()*5-5;
+					speed[ i + 2 ] = Math.random()*5-5;
 
 					colors[ i ] = 1;
 					colors[ i + 1 ] = Math.abs(Math.random()-0.5);
@@ -249,6 +261,7 @@
 			geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
 			geometry.setAttribute( 'scale', new THREE.BufferAttribute( scales, 1 ) );
 			geometry.setAttribute( 'mass', new THREE.BufferAttribute( mass, 1 ) );
+			geometry.setAttribute( 'seed', new THREE.BufferAttribute( seeds, 1 ) );
 			geometry.setAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
 			geometry.setAttribute( 'speed', new THREE.BufferAttribute( speed, 3 ) );
 
@@ -507,7 +520,7 @@
 			scene = new THREE.Scene();
 
 			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 100000);
-			camera.position.set(1000, -110, 200);
+			camera.position.set(5000, 2500, 5000);
 
 			camera.rotation.x = Math.PI;
 
